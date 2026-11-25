@@ -1,0 +1,53 @@
+{
+  "name": "satsentry",
+  "version": "1.0.0",
+  "description": "Open-source Bitcoin & Lightning CVE exposure radar, node security posture auditor, local port/version CLI, MCP server, and L402-monetized fleet defense API.",
+  "license": "MIT",
+  "private": false,
+  "bin": {
+    "satsentry": "./bin/satsentry.mjs"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "cli": "node ./bin/satsentry.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.511.0",
+    "next": "^16.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.8.0",
+    "vitest": "^5.1.2"
+  },
+  "keywords": [
+    "bitcoin",
+    "lightning",
+    "security",
+    "cve",
+    "l402",
+    "mcp",
+    "node-auditor",
+    "bitcoin-core",
+    "lnd",
+    "core-lightning",
+    "lnbits",
+    "btcpay"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theguysaccount/satsentry"
+  }
+}

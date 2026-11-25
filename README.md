@@ -2,6 +2,8 @@
 
 **Open-source Bitcoin & Lightning CVE Exposure Radar, Node Security Posture Auditor, Local Port/Version CLI, MCP Server, and L402-Monetized Fleet Defense API.**
 
+**Live Production App:** https://satsentry.vercel.app · **L402 Discovery:** https://satsentry.vercel.app/.well-known/l402.json · **MCP Endpoint:** https://satsentry.vercel.app/api/mcp
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-f7931a.svg)](LICENSE)
 
 ## Why SatSentry Exists

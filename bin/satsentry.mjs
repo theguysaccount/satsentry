@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 /**
- * SatSentry Local CLI (Zero external runtime dependencies, MIT License)
+ * SatSentry Local CLI & Watch Daemon v2.0.0 (Zero external dependencies, MIT)
  *
  * Read-only, non-custodial Bitcoin & Lightning node security auditor.
- * - Detects local versions via bitcoin-cli / lncli / lightning-cli (optional, read-only)
- *   or accepts explicit version flags (--bitcoin, --lnd, --cln, --eclair, --btcpay, --lnbits).
- * - Scans sensitive admin/RPC/REST ports (8332, 10009, 8080, 3010, 9835, 50001, 5000)
- *   on a target host to catch accidental non-loopback exposure.
- * - Supports --json and --ci (exits code 2 on critical/high/medium CVE or exposed admin port).
+ * Commands:
+ *   satsentry audit [options]  Run one-shot version + port exposure audit
+ *   satsentry watch [options]  Run continuous daemon polling with optional webhook alert
  */
 
 import { execFileSync } from "node:child_process";
@@ -137,6 +135,33 @@ const ADVISORIES = [
     ],
   },
   {
+    id: "LDK-2026-027-FUNDS-THEFT",
+    software: "ldk",
+    severity: "critical",
+    title: "Channel state-update replay reconnect funds-theft (#5057, Project Loupe)",
+    fixed: "0.2.7, 0.2.8",
+    url: "https://github.com/lightningdevkit/rust-lightning/blob/main/CHANGELOG.md",
+    clauses: [{ maxExc: "0.2.7" }],
+  },
+  {
+    id: "LDK-2026-027-LSPS2-THEFT",
+    software: "ldk",
+    severity: "critical",
+    title: "LSPS2 JIT intercepted HTLC amount spoofing funds-theft (#5042)",
+    fixed: "0.2.7, 0.2.8",
+    url: "https://github.com/lightningdevkit/rust-lightning/blob/main/CHANGELOG.md",
+    clauses: [{ maxExc: "0.2.7" }],
+  },
+  {
+    id: "LDK-2026-028-COOP-CLOSE",
+    software: "ldk",
+    severity: "high",
+    title: "Invalid cooperative close broadcast & BOLT11 graph eviction (#5507/#5503/#5545)",
+    fixed: "0.2.8",
+    url: "https://github.com/lightningdevkit/rust-lightning/releases/tag/v0.2.8",
+    clauses: [{ maxExc: "0.2.8" }],
+  },
+  {
     id: "ECLAIR-2026-LOUPE-WAVE",
     software: "eclair",
     severity: "high",
@@ -186,7 +211,7 @@ const ADVISORIES = [
 const SENSITIVE_PORTS = [
   { port: 8332, service: "Bitcoin Core JSON-RPC", risk: "critical", advice: "Bind rpcbind=127.0.0.1 only; never expose RPC over public interfaces." },
   { port: 10009, service: "LND gRPC Admin API", risk: "high", advice: "Restrict to loopback, WireGuard, or Tor; rotate macaroons if exposed." },
-  { port: 8080, service: "LND REST / Eclair API", risk: "high", advice: "Do not expose LND REST directly to the internet (REST memory exhaustion & macaroon risk)." },
+  { port: 8080, service: "LND REST / Eclair API", risk: "high", advice: "Do not expose LND REST directly to the internet." },
   { port: 3010, service: "CLN REST (clnrest)", risk: "high", advice: "Restrict rune/REST port behind VPN/Tor or authenticated reverse proxy." },
   { port: 9835, service: "Core Lightning gRPC", risk: "high", advice: "Keep gRPC strictly on localhost or mTLS VPN." },
   { port: 50001, service: "Electrs / Fulcrum TCP", risk: "medium", advice: "Prefer TLS (50002) or Tor/LAN binding to prevent query/UTXO leakage." },
@@ -249,89 +274,119 @@ function probePort(host, port, timeoutMs = 900) {
   });
 }
 
+function toSarif(report) {
+  const rules = new Map();
+  const results = [];
+  for (const item of report.checkedSoftware) {
+    for (const adv of item.advisories) {
+      if (!rules.has(adv.id)) {
+        rules.set(adv.id, {
+          id: adv.id,
+          name: adv.id.replace(/[^a-zA-Z0-9]/g, ""),
+          shortDescription: { text: `${item.software}: ${adv.title}` },
+          helpUri: adv.url,
+        });
+      }
+      results.push({
+        ruleId: adv.id,
+        level: adv.severity === "critical" || adv.severity === "high" ? "error" : "warning",
+        message: { text: `[${adv.severity.toUpperCase()}] ${item.software} ${item.version}: ${adv.title} (fix: ${adv.fixed})` },
+        locations: [{ physicalLocation: { artifactLocation: { uri: `node-stack/${item.software}@${item.version}` } } }],
+      });
+    }
+  }
+  return {
+    $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+    version: "2.1.0",
+    runs: [{ tool: { driver: { name: "SatSentry", version: "2.0.0", informationUri: "https://satsentry.vercel.app", rules: Array.from(rules.values()) } }, results }],
+  };
+}
+
 function parseArgs(argv) {
   const opts = {
     command: argv[0] && !argv[0].startsWith("-") ? argv[0] : "audit",
     versions: {},
     scanHost: null,
-    json: false,
+    format: "text",
     ci: false,
+    webhook: null,
+    intervalMinutes: 60,
     help: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--help" || a === "-h") opts.help = true;
-    else if (a === "--json") opts.json = true;
+    else if (a === "--json") opts.format = "json";
+    else if (a === "--format" && argv[i + 1]) opts.format = argv[++i];
     else if (a === "--ci") opts.ci = true;
     else if (a === "--bitcoin" && argv[i + 1]) opts.versions["bitcoin-core"] = argv[++i];
     else if (a === "--lnd" && argv[i + 1]) opts.versions["lnd"] = argv[++i];
+    else if (a === "--ldk" && argv[i + 1]) opts.versions["ldk"] = argv[++i];
     else if (a === "--cln" && argv[i + 1]) opts.versions["core-lightning"] = argv[++i];
     else if (a === "--eclair" && argv[i + 1]) opts.versions["eclair"] = argv[++i];
     else if (a === "--btcpay" && argv[i + 1]) opts.versions["btcpay"] = argv[++i];
     else if (a === "--lnbits" && argv[i + 1]) opts.versions["lnbits"] = argv[++i];
     else if (a === "--scan-host" && argv[i + 1]) opts.scanHost = argv[++i];
+    else if (a === "--webhook" && argv[i + 1]) opts.webhook = argv[++i];
+    else if (a === "--interval" && argv[i + 1]) opts.intervalMinutes = Math.max(1, Number(argv[++i]) || 60);
   }
   return opts;
 }
 
 function printHelp() {
-  console.log(`SatSentry CLI v1.0.0 — Read-Only Bitcoin & Lightning Security Auditor
+  console.log(`SatSentry CLI & Watch Daemon v2.0.0 — Read-Only Bitcoin & Lightning Auditor
 
 Usage:
   satsentry audit [options]
+  satsentry watch --interval 60 --webhook https://hooks.example.com/alert [options]
 
 Options:
-  --bitcoin <ver>     Audit Bitcoin Core version (e.g. 31.2.0)
-  --lnd <ver>         Audit LND version (e.g. 0.21.8-beta)
-  --cln <ver>         Audit Core Lightning version (e.g. 26.06.8)
-  --eclair <ver>      Audit Eclair version (e.g. 0.14.5)
-  --btcpay <ver>      Audit BTCPay Server version (e.g. 2.4.5)
-  --lnbits <ver>      Audit LNbits version (e.g. 1.6.2)
-  --scan-host <ip>    Check sensitive RPC/REST admin ports on a target host
-  --json              Emit machine-readable JSON output
-  --ci                Exit with code 2 if any medium/high/critical finding exists
-  --help              Show this help message
-
-If no version flags are supplied, SatSentry runs read-only local detection via
-bitcoin-cli, lncli, and lightning-cli when available on PATH.`);
+  --bitcoin <ver>       Audit Bitcoin Core version (e.g. 31.2.0)
+  --cln <ver>           Audit Core Lightning version (e.g. 26.06.8)
+  --lnd <ver>           Audit LND version (e.g. 0.21.8-beta)
+  --ldk <ver>           Audit LDK / rust-lightning version (e.g. 0.2.6)
+  --eclair <ver>        Audit Eclair version (e.g. 0.14.5)
+  --btcpay <ver>        Audit BTCPay Server version (e.g. 2.4.5)
+  --lnbits <ver>        Audit LNbits version (e.g. 1.6.2)
+  --scan-host <ip>      Check sensitive RPC/REST admin ports on a target host
+  --json                Shorthand for --format json
+  --format <fmt>        Output format: text | json | sarif (SARIF 2.1.0 for GitHub Code Scanning)
+  --ci                  Exit with code 2 if any medium/high/critical finding exists
+  --webhook <url>       POST JSON alert payload on failure (watch mode)
+  --interval <minutes>  Polling interval in minutes for watch daemon (default: 60)
+  --help                Show this help message`);
 }
 
-async function main() {
-  const opts = parseArgs(process.argv.slice(2));
-  if (opts.help) {
-    printHelp();
-    process.exit(0);
-  }
-
-  // Auto-detect local read-only CLI binaries if user passed no manual versions
-  if (Object.keys(opts.versions).length === 0) {
+async function runOnce(opts) {
+  const versions = { ...opts.versions };
+  if (Object.keys(versions).length === 0) {
     const btcOut = tryExec("bitcoin-cli", ["getnetworkinfo"]);
     if (btcOut) {
       try {
         const j = JSON.parse(btcOut);
         const m = String(j.subversion || "").match(/Satoshi:([0-9.]+)/);
-        if (m) opts.versions["bitcoin-core"] = m[1];
+        if (m) versions["bitcoin-core"] = m[1];
       } catch {}
     }
     const lndOut = tryExec("lncli", ["getinfo"]);
     if (lndOut) {
       try {
         const j = JSON.parse(lndOut);
-        if (j.version) opts.versions["lnd"] = String(j.version).split(/\s+/)[0];
+        if (j.version) versions["lnd"] = String(j.version).split(/\s+/)[0];
       } catch {}
     }
     const clnOut = tryExec("lightning-cli", ["getinfo"]);
     if (clnOut) {
       try {
         const j = JSON.parse(clnOut);
-        if (j.version) opts.versions["core-lightning"] = String(j.version);
+        if (j.version) versions["core-lightning"] = String(j.version);
       } catch {}
     }
   }
 
   const versionFindings = [];
-  for (const [software, versionStr] of Object.entries(opts.versions)) {
+  for (const [software, versionStr] of Object.entries(versions)) {
     const v = parseVer(versionStr);
     if (!v) continue;
     const matched = ADVISORIES.filter(
@@ -378,13 +433,14 @@ async function main() {
       f.advisories.some((a) => ["critical", "high", "medium"].includes(a.severity))
     ) || nonLoopbackExposed.length > 0;
 
-  const report = {
+  return {
     tool: "satsentry-cli",
-    version: "1.0.0",
+    version: "2.0.0",
     auditedAt: new Date().toISOString(),
     checkedSoftware: versionFindings,
     scannedHost: opts.scanHost,
     exposedPorts,
+    failing,
     summary: {
       componentsChecked: versionFindings.length,
       totalAdvisories,
@@ -392,52 +448,104 @@ async function main() {
       status: failing ? "FAIL" : "PASS",
     },
   };
+}
 
-  if (opts.json) {
+function renderReport(report, format) {
+  if (format === "sarif") {
+    console.log(JSON.stringify(toSarif(report), null, 2));
+    return;
+  }
+  if (format === "json") {
     console.log(JSON.stringify(report, null, 2));
-  } else {
-    console.log(`\nSatSentry CLI v1.0.0 — Security Audit (${report.summary.status})`);
-    console.log("=".repeat(60));
-    if (versionFindings.length === 0) {
-      console.log(
-        "No local Bitcoin/Lightning binaries detected. Pass --bitcoin, --lnd, --cln, --eclair, --btcpay, or --lnbits."
-      );
-    } else {
-      for (const item of versionFindings) {
-        const tag =
-          item.advisories.length === 0
-            ? item.eol
-              ? "EOL"
-              : "OK"
-            : `${item.advisories.length} CVE(s)`;
-        console.log(`\n[${tag}] ${item.software} ${item.version}`);
-        if (item.eol) {
-          console.log("  ! Branch has reached End-of-Life (no security backports).");
-        }
-        for (const adv of item.advisories) {
-          console.log(
-            `  - [${adv.severity.toUpperCase()}] ${adv.id}: ${adv.title} (fix: ${adv.fixed})`
-          );
-          console.log(`    ${adv.url}`);
-        }
-      }
-    }
-    if (opts.scanHost) {
-      console.log(`\nPort exposure check on ${opts.scanHost}:`);
-      if (exposedPorts.length === 0) {
-        console.log("  No sensitive Bitcoin/Lightning admin ports reachable.");
-      } else {
-        for (const p of exposedPorts) {
-          console.log(
-            `  - [${p.severity.toUpperCase()}] ${p.host}:${p.port} (${p.service}) — ${p.advice}`
-          );
-        }
-      }
-    }
-    console.log("");
+    return;
   }
 
-  if (opts.ci && failing) {
+  console.log(`\nSatSentry CLI v2.0.0 — Security Audit (${report.summary.status})`);
+  console.log("=".repeat(60));
+  if (report.checkedSoftware.length === 0) {
+    console.log(
+      "No local Bitcoin/Lightning binaries detected. Pass --bitcoin, --cln, --lnd, --ldk, --eclair, --btcpay, or --lnbits."
+    );
+  } else {
+    for (const item of report.checkedSoftware) {
+      const tag =
+        item.advisories.length === 0
+          ? item.eol
+            ? "EOL"
+            : "OK"
+          : `${item.advisories.length} CVE(s)`;
+      console.log(`\n[${tag}] ${item.software} ${item.version}`);
+      if (item.eol) {
+        console.log("  ! Branch has reached End-of-Life (no security backports).");
+      }
+      for (const adv of item.advisories) {
+        console.log(
+          `  - [${adv.severity.toUpperCase()}] ${adv.id}: ${adv.title} (fix: ${adv.fixed})`
+        );
+        console.log(`    ${adv.url}`);
+      }
+    }
+  }
+  if (report.scannedHost) {
+    console.log(`\nPort exposure check on ${report.scannedHost}:`);
+    if (report.exposedPorts.length === 0) {
+      console.log("  No sensitive Bitcoin/Lightning admin ports reachable.");
+    } else {
+      for (const p of report.exposedPorts) {
+        console.log(
+          `  - [${p.severity.toUpperCase()}] ${p.host}:${p.port} (${p.service}) — ${p.advice}`
+        );
+      }
+    }
+  }
+  console.log("");
+}
+
+async function notifyWebhook(url, report) {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "User-Agent": "SatSentry-Watch/2.0" },
+      body: JSON.stringify({
+        text: `[SatSentry ALERT] ${report.summary.totalAdvisories} CVE(s), ${report.summary.exposedNonLoopbackPorts} exposed admin port(s) at ${report.auditedAt}`,
+        report,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      console.error(`[watch] Webhook returned HTTP ${res.status}`);
+    }
+  } catch (err) {
+    console.error(`[watch] Webhook delivery failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+async function main() {
+  const opts = parseArgs(process.argv.slice(2));
+  if (opts.help) {
+    printHelp();
+    process.exit(0);
+  }
+
+  if (opts.command === "watch") {
+    console.log(
+      `[SatSentry Watch Daemon] Polling every ${opts.intervalMinutes} min(s)${opts.webhook ? " with webhook alerting enabled" : ""}...`
+    );
+    const tick = async () => {
+      const report = await runOnce(opts);
+      renderReport(report, opts.format);
+      if (report.failing && opts.webhook) {
+        await notifyWebhook(opts.webhook, report);
+      }
+    };
+    await tick();
+    setInterval(tick, opts.intervalMinutes * 60_000);
+    return;
+  }
+
+  const report = await runOnce(opts);
+  renderReport(report, opts.format);
+  if (opts.ci && report.failing) {
     process.exit(2);
   }
 }

@@ -96,7 +96,7 @@ SatSentry is deployed and verified in honest `preview-unconfigured` mode so no f
 - **Angle:** Protecting self-sovereign nodes and civil-society BTCPay/LNbits deployments in adversarial jurisdictions from remotely exploitable DoS, SSRF, and Tor `-whitelist` leaks (`CVE-2025-62860`) via a 100% read-only, zero-custody, offline-capable open-source auditor and Tor/Nostr alert daemon.
 
 ### D. Brink Grants (Rolling)
-- **Portal:** https://brink.dev/grants
+- **Portal:** https://brink.dev/programs#grants
 - **Angle:** Public protocol resilience infrastructure — automated P2P network upgrade-velocity telemetry and reproducible security advisory schemas aligned with `bitcoincore.org/en/security-advisories/`.
 
 ---

@@ -1,0 +1,17 @@
+[Unit]
+Description=SatSentry Local Bitcoin & Lightning CVE Watch Daemon
+After=network-online.target bitcoind.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bitcoin
+ExecStart=/usr/bin/node /opt/satsentry/bin/satsentry.mjs watch --interval 60 --scan-host 127.0.0.1
+Restart=on-failure
+RestartSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

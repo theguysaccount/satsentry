@@ -1,11 +1,12 @@
 {
   "name": "satsentry",
-  "version": "1.0.0",
-  "description": "Open-source Bitcoin & Lightning CVE exposure radar, node security posture auditor, local port/version CLI, MCP server, and L402-monetized fleet defense API.",
+  "version": "2.0.0",
+  "description": "Open-source Bitcoin & Lightning CVE exposure radar, node security posture auditor, local port/version CLI, MCP server, SARIF exporter, and L402-monetized fleet defense API.",
   "license": "MIT",
   "private": false,
   "bin": {
-    "satsentry": "./bin/satsentry.mjs"
+    "satsentry": "./bin/satsentry.mjs",
+    "satsentry-mcp": "./bin/satsentry-mcp.mjs"
   },
   "scripts": {
     "dev": "next dev",

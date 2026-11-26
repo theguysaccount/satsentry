@@ -2,6 +2,7 @@ import { ArrowRight, ExternalLink, Github, Shield, Zap } from "lucide-react";
 import { SECURITY_ADVISORIES } from "@/lib/advisories";
 import { getL402BackendStatus, L402_PRICING } from "@/lib/l402";
 import { getLiveMainnetRadar } from "@/lib/mainnet-radar";
+import { getUpstreamReleases } from "@/lib/releases";
 import { AdvisoryTableSection } from "@/components/AdvisoryTableSection";
 import { L402MonetizationSection } from "@/components/L402MonetizationSection";
 import { LightningAuditorSection } from "@/components/LightningAuditorSection";
@@ -11,8 +12,9 @@ import { StackAuditorSection } from "@/components/StackAuditorSection";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [radar, l402Status] = await Promise.all([
+  const [radar, releases, l402Status] = await Promise.all([
     getLiveMainnetRadar(),
+    getUpstreamReleases(),
     Promise.resolve(getL402BackendStatus()),
   ]);
 
@@ -89,9 +91,9 @@ export default async function HomePage() {
             <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
               AI code scanners (Project Loupe, OSS scanners) triggered a wave of 2026 disclosures across{" "}
               <strong className="text-white">
-                Bitcoin Core, Core Lightning, Eclair, BTCPay Server, and LNbits
+                Bitcoin Core, Core Lightning, LND, LDK, Eclair, BTCPay Server, and LNbits
               </strong>
-              —yet operators had no unified, non-custodial CVE monitor. SatSentry combines live mainnet exposure telemetry, deterministic node &amp; Lightning posture audits, a zero-dependency local port/version CLI, an MCP server, and an{" "}
+              —yet operators had no unified, non-custodial CVE monitor. SatSentry combines live mainnet exposure telemetry, deterministic node &amp; Lightning posture audits, SARIF 2.1.0 CI exports, a zero-dependency local CLI &amp; watch daemon, an MCP server, and an{" "}
               <strong className="text-[#f7931a]">L402 Lightning pay-per-call API</strong>.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -132,6 +134,62 @@ export default async function HomePage() {
 
         {/* Live Mainnet CVE Radar */}
         <MainnetRadarSection initialRadar={radar} />
+
+        {/* Live Upstream Release Baselines across 7 Bitcoin/Lightning Repos */}
+        <section className="rounded-xl border border-slate-800 bg-[#11151b]/90 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div>
+              <h2 className="font-display text-base font-semibold text-white">
+                Live Upstream Patched Release Baselines (7 Core &amp; Lightning Stacks)
+              </h2>
+              <p className="text-xs text-slate-400">
+                Tracked directly from official upstream GitHub releases &amp; tags ·{" "}
+                <a
+                  href="/api/v1/releases"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-slate-300 underline hover:text-[#f7931a]"
+                >
+                  /api/v1/releases
+                </a>
+              </p>
+            </div>
+            <a
+              href="/api/v1/badge?type=mainnet"
+              target="_blank"
+              rel="noreferrer"
+              title="Live embeddable SVG badge"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/api/v1/badge?type=mainnet"
+                alt="SatSentry live mainnet CVE exposure badge"
+                className="h-5"
+              />
+            </a>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+            {releases.map((rel) => (
+              <a
+                key={rel.software}
+                href={rel.releaseUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="group rounded-lg border border-slate-800 bg-[#0b0e13] p-3 transition hover:border-[#f7931a]/50"
+              >
+                <div className="truncate font-mono text-[11px] text-slate-400 group-hover:text-slate-200">
+                  {rel.name}
+                </div>
+                <div className="mt-1 font-mono text-sm font-bold text-emerald-300">
+                  {rel.latestUpstreamTag ?? `v${rel.baselineVersion}`}
+                </div>
+                <div className="mt-1 font-mono text-[10px] text-slate-500">
+                  {rel.publishedAt ? rel.publishedAt.slice(0, 10) : rel.repo.split("/")[0]}
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
 
         {/* Node & Stack Version Auditor */}
         <StackAuditorSection />
@@ -189,6 +247,9 @@ export default async function HomePage() {
           <div className="flex flex-wrap gap-4 font-mono">
             <a href="/api/health" className="hover:text-slate-200">
               /api/health
+            </a>
+            <a href="/llms.txt" className="hover:text-slate-200">
+              /llms.txt
             </a>
             <a href="/api/mcp" className="hover:text-slate-200">
               /api/mcp

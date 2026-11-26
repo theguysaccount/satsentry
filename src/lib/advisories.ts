@@ -411,6 +411,62 @@ export const SECURITY_ADVISORIES: SecurityAdvisory[] = [
     sourceOrg: "Lightning Labs",
   },
 
+  // ===================== LDK (RUST-LIGHTNING) =====================
+  {
+    id: "LDK-2026-027-FUNDS-THEFT",
+    cveId: null,
+    software: "ldk",
+    softwareName: "LDK (rust-lightning)",
+    title: "Channel state-update replay reconnect funds-theft vulnerability (#5057)",
+    severity: "critical",
+    publishedDate: "2026-10-01",
+    affectedSummary: "< 0.2.7",
+    affectedClauses: [{ maxExclusive: "0.2.7" }],
+    fixedVersions: ["v0.2.7", "v0.2.8"],
+    summary:
+      "A malicious channel counterparty acknowledging a state update and reconnecting while pretending not to have received it could coerce signing a conflicting commitment transaction at the same index, enabling funds theft.",
+    remediation:
+      "Upgrade rust-lightning / LDK immediately to v0.2.8+ (initially patched in v0.2.7 'LLMs vs Fuzzers').",
+    sourceUrl: "https://github.com/lightningdevkit/rust-lightning/blob/main/CHANGELOG.md",
+    sourceOrg: "Lightning Dev Kit (Spiral)",
+    discoveryTag: "Project Loupe (Spiral LLM Scanner)",
+  },
+  {
+    id: "LDK-2026-027-LSPS2-THEFT",
+    cveId: null,
+    software: "ldk",
+    softwareName: "LDK (rust-lightning)",
+    title: "LSPS2 JIT intercepted HTLC amount spoofing funds-theft (#5042)",
+    severity: "critical",
+    publishedDate: "2026-10-01",
+    affectedSummary: "< 0.2.7",
+    affectedClauses: [{ maxExclusive: "0.2.7" }],
+    fixedVersions: ["v0.2.7", "v0.2.8"],
+    summary:
+      "An LSPS2 JIT client could misreport an intercepted HTLC amount, causing an LSP to open a channel and forward more funds than the inbound HTLC provided; v0.2.7 also fixes an Electrum sync DoS (#4867) reported by Project Loupe.",
+    remediation: "Upgrade LDK / rust-lightning immediately to v0.2.8+.",
+    sourceUrl: "https://github.com/lightningdevkit/rust-lightning/blob/main/CHANGELOG.md",
+    sourceOrg: "Lightning Dev Kit (Spiral)",
+    discoveryTag: "LQWD & Project Loupe",
+  },
+  {
+    id: "LDK-2026-028-COOP-CLOSE",
+    cveId: null,
+    software: "ldk",
+    softwareName: "LDK (rust-lightning)",
+    title: "Invalid cooperative close broadcast, malicious BOLT11 graph eviction & pending-channel funds loss (#5507/#5503/#5545)",
+    severity: "high",
+    publishedDate: "2026-11-10",
+    affectedSummary: "< 0.2.8",
+    affectedClauses: [{ maxExclusive: "0.2.8" }],
+    fixedVersions: ["v0.2.8"],
+    summary:
+      "LDK v0.2.8 ('Rising Tide') fixes counterparty-induced invalid cooperative close broadcasts, zero-conf outbound splice API gaps, malicious BOLT11 channel graph removal, and OpenChannelRequest delay funds-loss.",
+    remediation: "Upgrade LDK / rust-lightning to v0.2.8+.",
+    sourceUrl: "https://github.com/lightningdevkit/rust-lightning/releases/tag/v0.2.8",
+    sourceOrg: "Lightning Dev Kit (Spiral)",
+  },
+
   // ===================== ECLAIR =====================
   {
     id: "ECLAIR-2026-LOUPE-WAVE",
@@ -599,6 +655,12 @@ export const SOFTWARE_CATALOG: Record<
     repo: "lightningnetwork/lnd",
     latestStable: "0.21.8-beta",
     defaultPorts: [9735, 10009, 8080],
+  },
+  ldk: {
+    name: "LDK (rust-lightning)",
+    repo: "lightningdevkit/rust-lightning",
+    latestStable: "0.2.8",
+    defaultPorts: [9735],
   },
   eclair: {
     name: "Eclair",

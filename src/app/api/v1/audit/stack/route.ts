@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auditStack, extractComponentsFromCliJson } from "@/lib/audit-engine";
+import { stackReportToSarif } from "@/lib/sarif";
 
 const componentSchema = z.object({
   software: z.enum([
     "bitcoin-core",
     "core-lightning",
     "lnd",
+    "ldk",
     "eclair",
     "btcpay",
     "lnbits",
@@ -64,5 +66,13 @@ export async function POST(request: NextRequest) {
   }
 
   const report = auditStack(components.slice(0, 12));
+  const format = new URL(request.url).searchParams.get("format");
+  if (format === "sarif") {
+    return NextResponse.json(stackReportToSarif(report), {
+      headers: {
+        "Content-Type": "application/sarif+json; charset=utf-8",
+      },
+    });
+  }
   return NextResponse.json(report);
 }

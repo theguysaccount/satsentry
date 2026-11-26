@@ -484,7 +484,7 @@ export async function fetchAndAuditLightningNode(
     );
   }
 
-  const [nodeRes, chRes] = await Promise.all([
+  const [nodeRes, chPage0, chPage1, chPage2] = await Promise.all([
     fetch(`https://mempool.space/api/v1/lightning/nodes/${cleanKey}`, {
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
@@ -496,6 +496,20 @@ export async function fetchAndAuditLightningNode(
         signal: AbortSignal.timeout(10_000),
       }
     ),
+    fetch(
+      `https://mempool.space/api/v1/lightning/channels?public_key=${cleanKey}&status=open&index=10`,
+      {
+        cache: "no-store",
+        signal: AbortSignal.timeout(8_000),
+      }
+    ).catch(() => null),
+    fetch(
+      `https://mempool.space/api/v1/lightning/channels?public_key=${cleanKey}&status=open&index=20`,
+      {
+        cache: "no-store",
+        signal: AbortSignal.timeout(8_000),
+      }
+    ).catch(() => null),
   ]);
 
   if (nodeRes.status === 404) {
@@ -506,11 +520,23 @@ export async function fetchAndAuditLightningNode(
   }
 
   const node = (await nodeRes.json()) as MempoolLightningNode;
-  let openChannels: MempoolLightningChannel[] = [];
-  if (chRes.ok) {
-    const chJson = (await chRes.json()) as unknown;
-    if (Array.isArray(chJson)) {
-      openChannels = chJson as MempoolLightningChannel[];
+  const openChannels: MempoolLightningChannel[] = [];
+  const seenIds = new Set<string>();
+  for (const res of [chPage0, chPage1, chPage2]) {
+    if (res && res.ok) {
+      try {
+        const chJson = (await res.json()) as unknown;
+        if (Array.isArray(chJson)) {
+          for (const ch of chJson as MempoolLightningChannel[]) {
+            if (ch.id && !seenIds.has(ch.id)) {
+              seenIds.add(ch.id);
+              openChannels.push(ch);
+            }
+          }
+        }
+      } catch {
+        // Ignore non-critical secondary page parse error
+      }
     }
   }
 

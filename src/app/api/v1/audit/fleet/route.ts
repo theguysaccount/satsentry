@@ -24,6 +24,7 @@ const fleetSchema = z.object({
                 "bitcoin-core",
                 "core-lightning",
                 "lnd",
+                "ldk",
                 "eclair",
                 "btcpay",
                 "lnbits",

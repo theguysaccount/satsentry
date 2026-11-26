@@ -354,6 +354,24 @@ export function LightningAuditorSection() {
                 <div className="rounded-lg border border-slate-800 bg-[#0b0e13] p-3.5 text-xs text-slate-400">
                   <div className="flex items-center gap-1.5 font-mono text-slate-200">
                     <ShieldCheck className="h-3.5 w-3.5 text-[#f7931a]" />
+                    Embeddable Live Badge
+                  </div>
+                  <div className="mt-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/v1/badge?pubkey=${encodeURIComponent(report.publicKey)}`}
+                      alt={`SatSentry badge for ${report.alias}`}
+                      className="h-5"
+                    />
+                  </div>
+                  <code className="mt-2 block break-all rounded bg-[#090b0e] p-2 font-mono text-[10px] text-slate-400">
+                    {`![SatSentry](https://satsentry.vercel.app/api/v1/badge?pubkey=${report.publicKey})`}
+                  </code>
+                </div>
+
+                <div className="rounded-lg border border-slate-800 bg-[#0b0e13] p-3.5 text-xs text-slate-400">
+                  <div className="flex items-center gap-1.5 font-mono text-slate-200">
+                    <ShieldCheck className="h-3.5 w-3.5 text-[#f7931a]" />
                     Deep Fleet API
                   </div>
                   <p className="mt-1 text-[11px]">

@@ -10,6 +10,7 @@ const SOFTWARE_FILTERS: Array<{ id: SoftwareId | "all"; label: string }> = [
   { id: "bitcoin-core", label: "Bitcoin Core" },
   { id: "core-lightning", label: "Core Lightning" },
   { id: "lnd", label: "LND" },
+  { id: "ldk", label: "LDK" },
   { id: "eclair", label: "Eclair" },
   { id: "btcpay", label: "BTCPay" },
   { id: "lnbits", label: "LNbits" },

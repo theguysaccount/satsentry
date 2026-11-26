@@ -13,6 +13,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://satsentry.vercel.app"),
   title: "SatSentry — Live Bitcoin & Lightning CVE Radar, Node Auditor & L402 Defense API",
   description:
     "Open-source, non-custodial Bitcoin & Lightning security telemetry. Track real-time mainnet CVE exposure across 21,500+ reachable nodes, audit node stacks & public Lightning posture, and monetize fleet audits via L402 & MCP.",

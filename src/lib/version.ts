@@ -2,6 +2,7 @@ export type SoftwareId =
   | "bitcoin-core"
   | "core-lightning"
   | "lnd"
+  | "ldk"
   | "eclair"
   | "btcpay"
   | "lnbits";
@@ -222,6 +223,18 @@ export function getLifecycleStatus(
           : current
           ? "Current on LND 0.20.8-beta / 0.21.8-beta maintenance baseline."
           : "Behind the November 2026 LND point release.",
+      };
+    }
+    case "ldk": {
+      const target = parseVersion("0.2.8")!;
+      const isEol = version.major === 0 && version.minor < 2;
+      const isOutdated = compareVersions(version, target) < 0;
+      return {
+        isEol,
+        latestRecommended: "v0.2.8 (or v0.3.0-beta1)",
+        note: isOutdated
+          ? "Behind LDK v0.2.8 which bundles critical Oct–Nov 2026 funds-theft (Project Loupe / LSPS2) and cooperative-close fixes."
+          : "Current on LDK v0.2.8+ security baseline.",
       };
     }
     case "eclair": {

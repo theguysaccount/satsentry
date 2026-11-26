@@ -18,5 +18,5 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - run: node bin/satsentry.mjs audit --bitcoin 32.1.0 --cln 26.06.10 --lnd 0.21.8-beta --ci
+      - run: node bin/satsentry.mjs audit --bitcoin 32.1.0 --cln 26.06.10 --lnd 0.21.8-beta --ldk 0.2.8 --eclair 0.14.6 --btcpay 2.4.7 --lnbits 1.7.1 --ci
       - run: npm run build

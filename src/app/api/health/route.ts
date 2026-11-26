@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   return NextResponse.json({
     service: "SatSentry",
-    version: "1.0.0",
+    version: "2.0.0",
     status: "ok",
     timestamp: new Date().toISOString(),
     advisoriesIndexed: SECURITY_ADVISORIES.length,
@@ -18,12 +18,16 @@ export async function GET() {
     endpoints: {
       radar: "/api/v1/radar",
       advisories: "/api/v1/advisories",
+      releases: "/api/v1/releases",
+      badges: "/api/v1/badge",
       stackAudit: "/api/v1/audit/stack",
+      stackAuditSarif: "/api/v1/audit/stack?format=sarif",
       fleetAuditL402: "/api/v1/audit/fleet",
       lightningSearch: "/api/v1/lightning/search",
       lightningNodeAudit: "/api/v1/lightning/node/{pubkey}",
       l402Discovery: "/.well-known/l402.json",
       openApi: "/api/openapi.json",
+      llmsTxt: "/llms.txt",
       mcp: "/api/mcp",
     },
   });

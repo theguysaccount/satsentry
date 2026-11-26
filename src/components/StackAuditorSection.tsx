@@ -23,6 +23,7 @@ const SOFTWARE_OPTIONS: Array<{ id: SoftwareId; label: string; placeholder: stri
   { id: "bitcoin-core", label: "Bitcoin Core", placeholder: "e.g. 31.2.0 or 32.1.0" },
   { id: "core-lightning", label: "Core Lightning (CLN)", placeholder: "e.g. 26.06.8 or 26.06.10" },
   { id: "lnd", label: "LND", placeholder: "e.g. 0.20.6-beta or 0.21.8-beta" },
+  { id: "ldk", label: "LDK (rust-lightning)", placeholder: "e.g. 0.2.6 or 0.2.8" },
   { id: "eclair", label: "Eclair", placeholder: "e.g. 0.14.4 or 0.14.6" },
   { id: "btcpay", label: "BTCPay Server", placeholder: "e.g. 2.4.4 or 2.4.7" },
   { id: "lnbits", label: "LNbits", placeholder: "e.g. 1.6.2 or 1.7.1" },
@@ -94,18 +95,46 @@ export function StackAuditorSection() {
       kind === "vulnerable"
         ? [
             { id: "p1", software: "bitcoin-core", version: "31.2.0" },
-            { id: "p2", software: "core-lightning", version: "26.06.8" },
-            { id: "p3", software: "lnbits", version: "1.6.2" },
+            { id: "p2", software: "ldk", version: "0.2.6" },
+            { id: "p3", software: "core-lightning", version: "26.06.8" },
+            { id: "p4", software: "lnbits", version: "1.6.2" },
           ]
         : [
             { id: "p1", software: "bitcoin-core", version: "32.1.0" },
-            { id: "p2", software: "lnd", version: "0.21.8-beta" },
-            { id: "p3", software: "btcpay", version: "2.4.7" },
+            { id: "p2", software: "ldk", version: "0.2.8" },
+            { id: "p3", software: "lnd", version: "0.21.8-beta" },
+            { id: "p4", software: "btcpay", version: "2.4.7" },
           ];
     setRows(next);
     void runAudit({
       components: next.map((r) => ({ software: r.software, version: r.version })),
     });
+  }
+
+  async function downloadSarif() {
+    if (!report) return;
+    const payload = {
+      components: report.components.map((c) => ({
+        software: c.software,
+        version: c.parsedVersion ?? c.inputVersion,
+      })),
+    };
+    const res = await fetch("/api/v1/audit/stack?format=sarif", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return;
+    const sarif = await res.json();
+    const blob = new Blob([JSON.stringify(sarif, null, 2)], {
+      type: "application/sarif+json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "satsentry-audit.sarif";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -294,12 +323,21 @@ export function StackAuditorSection() {
                     {report.components.length === 1 ? "" : "s"}
                   </p>
                 </div>
-                <div className="text-right font-mono">
-                  <div className="text-2xl font-bold text-white">
-                    {report.overallScore}
-                    <span className="text-sm text-slate-500">/100</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={downloadSarif}
+                    className="rounded-lg border border-slate-700 bg-[#0b0e13] px-3 py-1.5 font-mono text-[11px] text-slate-300 transition hover:border-[#f7931a]/60 hover:text-white"
+                  >
+                    Export SARIF 2.1
+                  </button>
+                  <div className="text-right font-mono">
+                    <div className="text-2xl font-bold text-white">
+                      {report.overallScore}
+                      <span className="text-sm text-slate-500">/100</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500">Deterministic Stack Score</div>
                   </div>
-                  <div className="text-[11px] text-slate-500">Deterministic Stack Score</div>
                 </div>
               </div>
 

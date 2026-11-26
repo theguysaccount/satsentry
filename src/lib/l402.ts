@@ -25,7 +25,7 @@ export interface L402Invoice {
 
 export const L402_PRICING = {
   fleetAuditSats: 100,
-  deepLightningAuditSats: 50,
+  deepLightningAuditSats: 100,
   advisoryFeedBatchSats: 25,
 } as const;
 
@@ -262,20 +262,37 @@ export async function createLightningInvoice(
     if (!metaRes.ok) {
       throw new Error(`LNURL-pay discovery failed (${metaRes.status})`);
     }
-    const meta = (await metaRes.json()) as { callback?: string };
+    const meta = (await metaRes.json()) as {
+      callback?: string;
+      minSendable?: number;
+      maxSendable?: number;
+      commentAllowed?: number;
+    };
     if (!meta.callback) {
       throw new Error("LNURL-pay metadata missing callback URL");
     }
+    const requestedMsat = amountSats * 1000;
+    const effectiveMsat = Math.max(requestedMsat, meta.minSendable ?? 1000);
+    if (meta.maxSendable && effectiveMsat > meta.maxSendable) {
+      throw new Error("Requested invoice amount exceeds LNURL-pay maxSendable");
+    }
     const sep = meta.callback.includes("?") ? "&" : "?";
+    const commentMax = typeof meta.commentAllowed === "number" ? meta.commentAllowed : 0;
+    const commentQuery =
+      commentMax > 0
+        ? `&comment=${encodeURIComponent(memo.slice(0, commentMax))}`
+        : "";
     const invRes = await fetch(
-      `${meta.callback}${sep}amount=${amountSats * 1000}&comment=${encodeURIComponent(memo)}`,
+      `${meta.callback}${sep}amount=${effectiveMsat}${commentQuery}`,
       { signal: AbortSignal.timeout(8_000) }
     );
     if (!invRes.ok) {
       throw new Error(`LNURL-pay invoice callback failed (${invRes.status})`);
     }
-    const inv = (await invRes.json()) as { pr?: string };
-    if (!inv.pr) throw new Error("LNURL-pay callback returned no BOLT11 invoice");
+    const inv = (await invRes.json()) as { pr?: string; status?: string; reason?: string };
+    if (!inv.pr) {
+      throw new Error(inv.reason || "LNURL-pay callback returned no BOLT11 invoice");
+    }
 
     // Extract payment_hash from BOLT11 tagged field p (type 1, 52 5-bit words = 32 bytes)
     const paymentHash = extractBolt11PaymentHash(inv.pr);
@@ -285,7 +302,7 @@ export async function createLightningInvoice(
     return {
       paymentRequest: inv.pr,
       paymentHash,
-      amountSats,
+      amountSats: Math.ceil(effectiveMsat / 1000),
       provider: "lnurl-pay",
     };
   }

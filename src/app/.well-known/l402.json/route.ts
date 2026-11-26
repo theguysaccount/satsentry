@@ -11,13 +11,16 @@ export async function GET(request: NextRequest) {
     {
       schema: "l402-service-discovery/v1",
       name: "SatSentry",
+      version: "3.0.0",
       description:
-        "Live Bitcoin & Lightning CVE exposure radar, node security posture auditor, and batch fleet security API.",
+        "Non-custodial Bitcoin & Lightning security and on-chain intelligence suite: live mainnet CVE radar, 7-stack CVE auditing, Lightning posture scoring, Boltzmann transaction privacy entropy, UTXO dust hygiene, live fee/anchor oracle, and DNSSEC BIP-353 resolution.",
       repository: "https://github.com/theguysaccount/satsentry",
       license: "MIT",
       homepage: origin,
       openapi: `${origin}/api/openapi.json`,
       mcp: `${origin}/api/mcp`,
+      llms_txt: `${origin}/llms.txt`,
+      lightning_address: "satsentry@coinos.io",
       payment: {
         protocol: "L402",
         currency: "BTC",
@@ -40,23 +43,39 @@ export async function GET(request: NextRequest) {
           scope: "lightning:deep-audit",
           price_sats: L402_PRICING.deepLightningAuditSats,
           description:
-            "Deep Lightning node security posture, BOLT feature-bit audit, ASN cloud concentration, and channel HHI force-close blast radius.",
+            "Deep 30-channel Lightning node security posture, BOLT feature-bit audit, ASN cloud concentration, and HHI force-close blast radius.",
         },
         {
-          path: "/api/v1/radar",
-          method: "GET",
-          scope: "public",
-          price_sats: 0,
+          path: "/api/v1/l402/tx-privacy",
+          method: "POST",
+          scope: "tx:privacy-audit",
+          price_sats: L402_PRICING.txPrivacyAuditSats,
           description:
-            "Live Bitcoin mainnet CVE exposure census computed from reachable btcnodes.io nodes and mempool.space Lightning telemetry.",
+            "Exact Boltzmann combinatorial transaction entropy (E=log2 N), CIOH, address reuse, script-mismatch change fingerprinting, and fee hygiene for any mainnet Bitcoin txid.",
         },
         {
-          path: "/api/v1/advisories",
+          path: "/api/v1/l402/utxo-hygiene",
           method: "GET",
-          scope: "public",
-          price_sats: 0,
+          scope: "utxo:hygiene-audit",
+          price_sats: L402_PRICING.utxoHygieneAuditSats,
           description:
-            "Primary-source verified Bitcoin Core, Core Lightning, LND, Eclair, BTCPay Server, and LNbits security advisories.",
+            "Bitcoin address UTXO hygiene, multi-regime fee-spike dust stress test (1–200 sat/vB), and consolidation savings calculator.",
+        },
+        {
+          path: "/api/v1/l402/fee-oracle",
+          method: "GET",
+          scope: "bitcoin:fee-oracle",
+          price_sats: L402_PRICING.feeOracleSats,
+          description:
+            "Live Bitcoin mempool fee targets, vByte transaction cost matrix (P2TR/P2WPKH/Multisig/Lightning open/Anchor CPFP), and recommended Lightning on-chain anchor reserve.",
+        },
+        {
+          path: "/api/v1/l402/bip353",
+          method: "GET",
+          scope: "bip353:resolve",
+          price_sats: L402_PRICING.bip353ResolveSats,
+          description:
+            "DNSSEC-verified BIP-353 human-readable Bitcoin address resolver returning parsed on-chain, Silent Payments (BIP-352), BOLT 12 offer, and Ark payment instructions.",
         },
       ],
     },

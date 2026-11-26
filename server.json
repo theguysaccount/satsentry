@@ -1,0 +1,16 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.theguysaccount/satsentry",
+  "description": "Live Bitcoin & Lightning CVE exposure radar, 7-stack node auditor, Lightning posture scorer, Boltzmann tx privacy auditor, UTXO hygiene checker, fee oracle, and DNSSEC BIP-353 resolver.",
+  "repository": {
+    "url": "https://github.com/theguysaccount/satsentry",
+    "source": "github"
+  },
+  "version": "3.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://satsentry.vercel.app/api/mcp"
+    }
+  ]
+}

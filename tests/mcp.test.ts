@@ -24,6 +24,10 @@ describe("MCP JSON-RPC 2.0 server", () => {
       "audit_node_stack",
       "audit_lightning_node",
       "search_advisories",
+      "audit_tx_privacy",
+      "audit_utxo_hygiene",
+      "get_bitcoin_fee_oracle",
+      "resolve_bip353_address",
     ]);
   });
 

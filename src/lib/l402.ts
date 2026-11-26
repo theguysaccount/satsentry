@@ -26,7 +26,10 @@ export interface L402Invoice {
 export const L402_PRICING = {
   fleetAuditSats: 100,
   deepLightningAuditSats: 100,
-  advisoryFeedBatchSats: 25,
+  txPrivacyAuditSats: 25,
+  utxoHygieneAuditSats: 25,
+  feeOracleSats: 10,
+  bip353ResolveSats: 10,
 } as const;
 
 function getSigningSecret(explicitSecret?: string): string {

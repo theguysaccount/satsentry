@@ -130,34 +130,46 @@ export function L402MonetizationSection({
 
         <div className="rounded-xl border border-[#f7931a]/35 bg-[#11151b]/90 p-5">
           <div className="font-mono text-xs text-[#f7931a]">
-            L402 METERED API · {deepLightningPriceSats}–{fleetPriceSats} SATS/CALL
+            L402 METERED API · 10–{fleetPriceSats} SATS/CALL · VERIFIED ON 402INDEX.IO
           </div>
           <h3 className="mt-1 font-display text-lg font-bold text-white">
-            Batch Fleet &amp; Deep Lightning Audits
+            6 Live Bitcoin &amp; Lightning L402 Endpoints
           </h3>
           <ul className="mt-3 space-y-1.5 text-xs text-slate-400">
             <li>
               • <code className="font-mono text-slate-300">POST /api/v1/audit/fleet</code> —{" "}
-              <strong className="text-white">{fleetPriceSats} sats</strong> (up to 50 nodes + LN posture)
+              <strong className="text-white">{fleetPriceSats} sats</strong> (up to 50 nodes)
             </li>
             <li>
               • <code className="font-mono text-slate-300">GET /api/v1/lightning/node/:pk?deep=true</code> —{" "}
               <strong className="text-white">{deepLightningPriceSats} sats</strong>
             </li>
-            <li>• Machine-discoverable at <code className="font-mono text-slate-300">/.well-known/l402.json</code></li>
-            <li>• Pluggable receiver: LNbits, LND REST, or Lightning Address (LNURL-pay)</li>
+            <li>
+              • <code className="font-mono text-slate-300">POST /api/v1/l402/tx-privacy</code> &amp;{" "}
+              <code className="font-mono text-slate-300">/utxo-hygiene</code> —{" "}
+              <strong className="text-white">25 sats</strong>
+            </li>
+            <li>
+              • <code className="font-mono text-slate-300">GET /api/v1/l402/fee-oracle</code> &amp;{" "}
+              <code className="font-mono text-slate-300">/bip353</code> —{" "}
+              <strong className="text-white">10 sats</strong>
+            </li>
           </ul>
+          <div className="mt-3 rounded-lg border border-slate-800 bg-[#090b0e] px-3 py-2 font-mono text-[11px] text-slate-300">
+            ⚡ Support / Zap FOSS Radar:{" "}
+            <strong className="text-[#f7931a]">satsentry@coinos.io</strong>
+          </div>
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-[#11151b]/90 p-5">
-          <div className="font-mono text-xs text-sky-300">AI AGENT PROTOCOL · MCP JSON-RPC</div>
+          <div className="font-mono text-xs text-sky-300">AI AGENT PROTOCOL · 8 MCP TOOLS</div>
           <h3 className="mt-1 font-display text-lg font-bold text-white">
-            Streamable HTTP MCP Endpoint
+            Streamable HTTP &amp; Stdio MCP Server
           </h3>
           <ul className="mt-3 space-y-1.5 text-xs text-slate-400">
-            <li>• Endpoint: <code className="font-mono text-slate-300">POST /api/mcp</code></li>
-            <li>• Tools: <code className="font-mono text-slate-300">get_mainnet_cve_radar</code>, <code className="font-mono text-slate-300">audit_node_stack</code>, <code className="font-mono text-slate-300">audit_lightning_node</code>, <code className="font-mono text-slate-300">search_advisories</code></li>
-            <li>• Ready for 402index.io, Satring, Claude, Cursor &amp; Codex ops agents</li>
+            <li>• Remote: <code className="font-mono text-slate-300">POST /api/mcp</code> · Local: <code className="font-mono text-slate-300">bin/satsentry-mcp.mjs</code></li>
+            <li>• Security: <code className="font-mono text-slate-300">get_mainnet_cve_radar</code>, <code className="font-mono text-slate-300">audit_node_stack</code>, <code className="font-mono text-slate-300">audit_lightning_node</code>, <code className="font-mono text-slate-300">search_advisories</code></li>
+            <li>• On-Chain: <code className="font-mono text-slate-300">audit_tx_privacy</code>, <code className="font-mono text-slate-300">audit_utxo_hygiene</code>, <code className="font-mono text-slate-300">get_bitcoin_fee_oracle</code>, <code className="font-mono text-slate-300">resolve_bip353_address</code></li>
           </ul>
         </div>
       </div>

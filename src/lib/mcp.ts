@@ -1,7 +1,11 @@
 import { SECURITY_ADVISORIES } from "./advisories";
 import { auditStack, type ComponentInput } from "./audit-engine";
+import { resolveBip353Handle } from "./bip353";
+import { getLiveFeeOracle } from "./fee-oracle";
 import { fetchAndAuditLightningNode } from "./lightning-posture";
 import { getLiveMainnetRadar } from "./mainnet-radar";
+import { fetchAndAuditTxPrivacy } from "./tx-privacy";
+import { fetchAndAuditUtxoHygiene } from "./utxo-hygiene";
 import type { SoftwareId } from "./version";
 
 export interface JsonRpcRequest {
@@ -23,16 +27,12 @@ export const MCP_TOOLS = [
     name: "get_mainnet_cve_radar",
     description:
       "Fetch live Bitcoin mainnet node version census from btcnodes.io and compute exact reachable node exposure to active Bitcoin Core CVEs plus live Lightning network stats.",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      additionalProperties: false,
-    },
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "audit_node_stack",
     description:
-      "Audit one or more Bitcoin & Lightning software versions (bitcoin-core, core-lightning, lnd, eclair, btcpay, lnbits) against primary-source verified CVEs and EOL status.",
+      "Audit one or more Bitcoin & Lightning software versions (bitcoin-core, core-lightning, lnd, ldk, eclair, btcpay, lnbits) against primary-source verified CVEs and EOL status.",
     inputSchema: {
       type: "object",
       properties: {
@@ -66,7 +66,7 @@ export const MCP_TOOLS = [
   {
     name: "audit_lightning_node",
     description:
-      "Perform a live public security posture audit on any mainnet Lightning node public key using mempool.space gossip and open channels (BOLT feature bits, clearnet/Tor exposure, ASN cloud concentration, channel HHI blast radius).",
+      "Perform a live 30-channel public security posture audit on any mainnet Lightning node public key (BOLT feature bits, Tor/clearnet, cloud ASN, channel HHI blast radius).",
     inputSchema: {
       type: "object",
       properties: {
@@ -81,7 +81,7 @@ export const MCP_TOOLS = [
   {
     name: "search_advisories",
     description:
-      "Query SatSentry's verified Bitcoin & Lightning security advisory catalog by software or severity.",
+      "Query SatSentry's 32 primary-source verified Bitcoin & Lightning security advisories by software or severity.",
     inputSchema: {
       type: "object",
       properties: {
@@ -104,6 +104,48 @@ export const MCP_TOOLS = [
       },
     },
   },
+  {
+    name: "audit_tx_privacy",
+    description:
+      "Run exact Boltzmann combinatorial entropy (E=log2 N), CIOH, address reuse, script-mismatch change fingerprinting, and fee hygiene audit on any mainnet Bitcoin txid.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        txid: { type: "string", description: "64-character hex Bitcoin mainnet transaction ID" },
+      },
+      required: ["txid"],
+    },
+  },
+  {
+    name: "audit_utxo_hygiene",
+    description:
+      "Audit any mainnet Bitcoin address for UTXO fragmentation, address reuse, economic dust across 1–200 sat/vB fee spikes, and consolidation savings.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        address: { type: "string", description: "Mainnet Bitcoin address (bc1p/bc1q/1/3)" },
+      },
+      required: ["address"],
+    },
+  },
+  {
+    name: "get_bitcoin_fee_oracle",
+    description:
+      "Get live Bitcoin mempool fee targets, vByte transaction costs (P2TR, P2WPKH, 2-of-3 multisig, Lightning channel open, Anchor CPFP sweep), and consolidation window advice.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "resolve_bip353_address",
+    description:
+      "Resolve a human-readable BIP-353 Bitcoin address (e.g. matt@mattcorallo.com) via DNSSEC-validated DNS-over-HTTPS into on-chain, Silent Payments (BIP-352), BOLT 12 offer, and Ark payment instructions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        handle: { type: "string", description: "Human-readable Bitcoin payment handle (user@domain.com)" },
+      },
+      required: ["handle"],
+    },
+  },
 ] as const;
 
 export async function handleMcpRequest(
@@ -117,13 +159,8 @@ export async function handleMcpRequest(
       id,
       result: {
         protocolVersion: "2025-03-26",
-        capabilities: {
-          tools: {},
-        },
-        serverInfo: {
-          name: "satsentry-mcp",
-          version: "1.0.0",
-        },
+        capabilities: { tools: {} },
+        serverInfo: { name: "satsentry-mcp", version: "3.0.0" },
       },
     };
   }
@@ -133,13 +170,7 @@ export async function handleMcpRequest(
   }
 
   if (req.method === "tools/list") {
-    return {
-      jsonrpc: "2.0",
-      id,
-      result: {
-        tools: MCP_TOOLS,
-      },
-    };
+    return { jsonrpc: "2.0", id, result: { tools: MCP_TOOLS } };
   }
 
   if (req.method === "tools/call") {
@@ -147,52 +178,22 @@ export async function handleMcpRequest(
     const args = (req.params?.arguments ?? {}) as Record<string, unknown>;
 
     try {
+      let payload: unknown;
       if (toolName === "get_mainnet_cve_radar") {
-        const radar = await getLiveMainnetRadar();
-        return {
-          jsonrpc: "2.0",
-          id,
-          result: {
-            content: [{ type: "text", text: JSON.stringify(radar, null, 2) }],
-          },
-        };
-      }
-
-      if (toolName === "audit_node_stack") {
+        payload = await getLiveMainnetRadar();
+      } else if (toolName === "audit_node_stack") {
         const components = args.components as ComponentInput[] | undefined;
         if (!Array.isArray(components) || components.length === 0) {
           return {
             jsonrpc: "2.0",
             id,
-            error: {
-              code: -32602,
-              message: "Parameter `components` must be a non-empty array.",
-            },
+            error: { code: -32602, message: "Parameter `components` must be a non-empty array." },
           };
         }
-        const report = auditStack(components);
-        return {
-          jsonrpc: "2.0",
-          id,
-          result: {
-            content: [{ type: "text", text: JSON.stringify(report, null, 2) }],
-          },
-        };
-      }
-
-      if (toolName === "audit_lightning_node") {
-        const pubkey = typeof args.pubkey === "string" ? args.pubkey : "";
-        const report = await fetchAndAuditLightningNode(pubkey);
-        return {
-          jsonrpc: "2.0",
-          id,
-          result: {
-            content: [{ type: "text", text: JSON.stringify(report, null, 2) }],
-          },
-        };
-      }
-
-      if (toolName === "search_advisories") {
+        payload = auditStack(components);
+      } else if (toolName === "audit_lightning_node") {
+        payload = await fetchAndAuditLightningNode(String(args.pubkey ?? ""));
+      } else if (toolName === "search_advisories") {
         const software = args.software as SoftwareId | undefined;
         const severity = args.severity as string | undefined;
         const filtered = SECURITY_ADVISORIES.filter((a) => {
@@ -200,24 +201,29 @@ export async function handleMcpRequest(
           if (severity && a.severity !== severity) return false;
           return true;
         });
+        payload = { count: filtered.length, advisories: filtered };
+      } else if (toolName === "audit_tx_privacy") {
+        payload = await fetchAndAuditTxPrivacy(String(args.txid ?? ""));
+      } else if (toolName === "audit_utxo_hygiene") {
+        payload = await fetchAndAuditUtxoHygiene(String(args.address ?? ""));
+      } else if (toolName === "get_bitcoin_fee_oracle") {
+        payload = await getLiveFeeOracle();
+      } else if (toolName === "resolve_bip353_address") {
+        payload = await resolveBip353Handle(String(args.handle ?? ""));
+      } else {
         return {
           jsonrpc: "2.0",
           id,
-          result: {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({ count: filtered.length, advisories: filtered }, null, 2),
-              },
-            ],
-          },
+          error: { code: -32601, message: `Unknown tool: ${String(toolName)}` },
         };
       }
 
       return {
         jsonrpc: "2.0",
         id,
-        error: { code: -32601, message: `Unknown tool: ${String(toolName)}` },
+        result: {
+          content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+        },
       };
     } catch (err) {
       return {

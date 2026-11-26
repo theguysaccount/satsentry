@@ -5,31 +5,42 @@ import { L402_PRICING } from "@/lib/l402";
 export async function GET(request: NextRequest) {
   const origin = new URL(request.url).origin;
 
-  const content = `# SatSentry
+  const content = `# SatSentry v3.0
 
-> Open-source, non-custodial Bitcoin & Lightning CVE exposure radar, node security posture auditor, local port/version CLI, MCP server, and L402-monetized fleet defense API.
+> Open-source, non-custodial Bitcoin & Lightning security + on-chain intelligence suite: live mainnet CVE radar, 7-stack CVE auditor, 30-channel Lightning posture scorer, Boltzmann transaction privacy entropy auditor, UTXO dust stress-tester, live fee/anchor oracle, DNSSEC BIP-353 resolver, MCP server (8 tools), and 6 live L402 Lightning pay-per-call APIs.
 
 ## Key Links
 - Web Platform: ${origin}
 - Source Code (MIT): https://github.com/theguysaccount/satsentry
 - L402 Service Discovery: ${origin}/.well-known/l402.json
+- L402 Manifest: ${origin}/.well-known/l402-manifest.json
 - OpenAPI 3.1 Spec: ${origin}/api/openapi.json
 - Streamable HTTP MCP Endpoint: ${origin}/api/mcp
+- Lightning Zap Address: satsentry@coinos.io
 
-## Live Telemetry & Audit Endpoints
-- GET ${origin}/api/v1/radar — Live Bitcoin mainnet CVE exposure census computed from btcnodes.io and mempool.space.
-- GET ${origin}/api/v1/advisories — ${SECURITY_ADVISORIES.length} primary-source verified security advisories covering Bitcoin Core, Core Lightning (CLN), LND, LDK (rust-lightning), Eclair, BTCPay Server, and LNbits.
-- GET ${origin}/api/v1/releases — Live upstream GitHub latest release tracker across all 7 Bitcoin & Lightning repositories.
-- POST ${origin}/api/v1/audit/stack — Audit a node stack or pasted CLI getinfo JSON (supports ?format=sarif for SARIF 2.1.0 GitHub Code Scanning).
-- POST ${origin}/api/v1/audit/fleet — L402 Lightning pay-per-call (${L402_PRICING.fleetAuditSats} sats) batch audit for up to 50 Bitcoin & Lightning nodes.
-- GET ${origin}/api/v1/lightning/node/{pubkey} — Live mainnet Lightning node security posture audit (?deep=true L402 ${L402_PRICING.deepLightningAuditSats} sats).
-- GET ${origin}/api/v1/badge — Dynamic embeddable SVG badges (?type=mainnet, ?software=&version=, or ?pubkey=).
+## Live L402 Paid Endpoints (HTTP 402 over Lightning — Verified on 402index.io)
+- POST ${origin}/api/v1/audit/fleet — ${L402_PRICING.fleetAuditSats} sats (batch CVE + EOL + LN posture audit for up to 50 nodes)
+- GET ${origin}/api/v1/lightning/node/{pubkey}?deep=true — ${L402_PRICING.deepLightningAuditSats} sats (30-channel Lightning posture audit)
+- POST ${origin}/api/v1/l402/tx-privacy — ${L402_PRICING.txPrivacyAuditSats} sats (exact Boltzmann entropy + CIOH + change fingerprinting)
+- GET ${origin}/api/v1/l402/utxo-hygiene?address={addr} — ${L402_PRICING.utxoHygieneAuditSats} sats (UTXO dust stress-test + consolidation savings)
+- GET ${origin}/api/v1/l402/fee-oracle — ${L402_PRICING.feeOracleSats} sats (live mempool targets, vByte matrix & LN anchor reserve)
+- GET ${origin}/api/v1/l402/bip353?handle={user@domain} — ${L402_PRICING.bip353ResolveSats} sats (DNSSEC-verified BIP-353 -> on-chain / BOLT 12 / Silent Payments / Ark)
+
+## Free Public Telemetry Endpoints
+- GET ${origin}/api/v1/radar — Live Bitcoin mainnet CVE exposure census (${SECURITY_ADVISORIES.length} advisories across 7 stacks)
+- GET ${origin}/api/v1/advisories — Verified advisory catalog
+- GET ${origin}/api/v1/releases — Live upstream GitHub latest stable tags across 7 repos
+- GET ${origin}/api/v1/badge — Dynamic embeddable SVG badges (?type=mainnet, ?software=&version=, ?pubkey=)
 
 ## MCP Tools (POST ${origin}/api/mcp)
 - get_mainnet_cve_radar
 - audit_node_stack
 - audit_lightning_node
 - search_advisories
+- audit_tx_privacy
+- audit_utxo_hygiene
+- get_bitcoin_fee_oracle
+- resolve_bip353_address
 `;
 
   return new NextResponse(content, {

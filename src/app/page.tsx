@@ -1,5 +1,6 @@
 import { ArrowRight, ExternalLink, Github, Shield, Zap } from "lucide-react";
 import { SECURITY_ADVISORIES } from "@/lib/advisories";
+import { getLiveFeeOracle } from "@/lib/fee-oracle";
 import { getL402BackendStatus, L402_PRICING } from "@/lib/l402";
 import { getLiveMainnetRadar } from "@/lib/mainnet-radar";
 import { getUpstreamReleases } from "@/lib/releases";
@@ -7,14 +8,16 @@ import { AdvisoryTableSection } from "@/components/AdvisoryTableSection";
 import { L402MonetizationSection } from "@/components/L402MonetizationSection";
 import { LightningAuditorSection } from "@/components/LightningAuditorSection";
 import { MainnetRadarSection } from "@/components/MainnetRadarSection";
+import { OnChainIntelligenceSection } from "@/components/OnChainIntelligenceSection";
 import { StackAuditorSection } from "@/components/StackAuditorSection";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [radar, releases, l402Status] = await Promise.all([
+  const [radar, releases, feeOracle, l402Status] = await Promise.all([
     getLiveMainnetRadar(),
     getUpstreamReleases(),
+    getLiveFeeOracle(),
     Promise.resolve(getL402BackendStatus()),
   ]);
 
@@ -47,8 +50,11 @@ export default async function HomePage() {
             <a href="#lightning-audit" className="hover:text-white">
               Lightning Posture
             </a>
+            <a href="#onchain-intel" className="hover:text-white">
+              Privacy · UTXO · BIP-353
+            </a>
             <a href="#l402-api" className="hover:text-white">
-              L402 · MCP · CLI
+              L402 · MCP
             </a>
             <a href="#advisories" className="hover:text-white">
               CVEs ({SECURITY_ADVISORIES.length})
@@ -196,6 +202,9 @@ export default async function HomePage() {
 
         {/* Live Lightning Node Posture Auditor */}
         <LightningAuditorSection />
+
+        {/* On-Chain Privacy (Boltzmann), UTXO Hygiene, BIP-353 & Fee Oracle */}
+        <OnChainIntelligenceSection initialFeeOracle={feeOracle} />
 
         {/* L402 Pay-Per-Call Monetization + MCP + CLI */}
         <L402MonetizationSection

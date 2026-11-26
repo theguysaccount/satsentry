@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function OpenGraphImage() {
   const radar = await getLiveMainnetRadar();
   const btc = radar.bitcoinCensus;
+  const subtitle = `Bitcoin Core · Core Lightning · LND · LDK · Eclair · BTCPay · LNbits (${SECURITY_ADVISORIES.length} verified advisories)`;
 
   return new ImageResponse(
     (
@@ -27,7 +28,13 @@ export default async function OpenGraphImage() {
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             <div
               style={{
@@ -44,14 +51,15 @@ export default async function OpenGraphImage() {
                 fontWeight: 800,
               }}
             >
-              ₿
+              S
             </div>
-            <span style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "-0.02em" }}>
+            <div style={{ display: "flex", fontSize: "30px", fontWeight: 800 }}>
               SatSentry
-            </span>
+            </div>
           </div>
           <div
             style={{
+              display: "flex",
               fontSize: "18px",
               color: "#f7931a",
               border: "1px solid rgba(247,147,26,0.45)",
@@ -64,11 +72,11 @@ export default async function OpenGraphImage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          <div style={{ fontSize: "52px", fontWeight: 800, lineHeight: 1.08 }}>
+          <div style={{ display: "flex", fontSize: "52px", fontWeight: 800, lineHeight: 1.08 }}>
             Live Bitcoin &amp; Lightning CVE Exposure Radar
           </div>
-          <div style={{ fontSize: "24px", color: "#94a3b8" }}>
-            Bitcoin Core · Core Lightning · LND · LDK · Eclair · BTCPay · LNbits ({SECURITY_ADVISORIES.length} verified advisories)
+          <div style={{ display: "flex", fontSize: "22px", color: "#94a3b8" }}>
+            {subtitle}
           </div>
         </div>
 
@@ -84,10 +92,12 @@ export default async function OpenGraphImage() {
               flexDirection: "column",
             }}
           >
-            <span style={{ fontSize: "15px", color: "#94a3b8" }}>REACHABLE MAINNET NODES</span>
-            <span style={{ fontSize: "38px", fontWeight: 800, marginTop: "6px" }}>
+            <div style={{ display: "flex", fontSize: "15px", color: "#94a3b8" }}>
+              REACHABLE MAINNET NODES
+            </div>
+            <div style={{ display: "flex", fontSize: "38px", fontWeight: 800, marginTop: "6px" }}>
               {btc.totalReachableNodes.toLocaleString()}
-            </span>
+            </div>
           </div>
           <div
             style={{
@@ -100,10 +110,20 @@ export default async function OpenGraphImage() {
               flexDirection: "column",
             }}
           >
-            <span style={{ fontSize: "15px", color: "#fca5a5" }}>EXPOSED TO ≥1 CVE</span>
-            <span style={{ fontSize: "38px", fontWeight: 800, color: "#fca5a5", marginTop: "6px" }}>
-              {btc.vulnerableAnyCvePct}%
-            </span>
+            <div style={{ display: "flex", fontSize: "15px", color: "#fca5a5" }}>
+              EXPOSED TO AT LEAST 1 CVE
+            </div>
+            <div
+              style={{
+                display: "flex",
+                fontSize: "38px",
+                fontWeight: 800,
+                color: "#fca5a5",
+                marginTop: "6px",
+              }}
+            >
+              {`${btc.vulnerableAnyCvePct}%`}
+            </div>
           </div>
           <div
             style={{
@@ -116,10 +136,20 @@ export default async function OpenGraphImage() {
               flexDirection: "column",
             }}
           >
-            <span style={{ fontSize: "15px", color: "#fcd34d" }}>EOL BRANCHES (≤29.X)</span>
-            <span style={{ fontSize: "38px", fontWeight: 800, color: "#fcd34d", marginTop: "6px" }}>
-              {btc.eolBranchPct}%
-            </span>
+            <div style={{ display: "flex", fontSize: "15px", color: "#fcd34d" }}>
+              EOL BRANCHES (29.X &amp; OLDER)
+            </div>
+            <div
+              style={{
+                display: "flex",
+                fontSize: "38px",
+                fontWeight: 800,
+                color: "#fcd34d",
+                marginTop: "6px",
+              }}
+            >
+              {`${btc.eolBranchPct}%`}
+            </div>
           </div>
         </div>
       </div>

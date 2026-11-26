@@ -1,5 +1,5 @@
 import { SOFTWARE_CATALOG } from "./advisories";
-import type { SoftwareId } from "./version";
+import { compareVersions, parseVersion, type SoftwareId } from "./version";
 
 export interface UpstreamReleaseStatus {
   software: SoftwareId;
@@ -61,8 +61,15 @@ async function fetchRepoLatest(software: SoftwareId): Promise<UpstreamReleaseSta
           html_url: string;
           prerelease: boolean;
         }>;
-        const chosen =
-          releases.find((r) => !r.prerelease) ?? releases[0];
+        const stable = releases.filter((r) => !r.prerelease);
+        const pool = stable.length > 0 ? stable : releases;
+        pool.sort((a, b) => {
+          const va = parseVersion(a.tag_name);
+          const vb = parseVersion(b.tag_name);
+          if (va && vb) return compareVersions(vb, va);
+          return 0;
+        });
+        const chosen = pool[0];
         if (chosen) {
           return {
             software,

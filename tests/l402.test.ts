@@ -5,6 +5,7 @@ import {
   mintL402Macaroon,
   verifyL402Token,
 } from "../src/lib/l402";
+import { verifyNewsatoshiPayWordHeader } from "../src/lib/l402-gate";
 
 describe("L402 stateless macaroon + preimage verification", () => {
   const secret = "unit-test-hmac-secret";
@@ -61,5 +62,23 @@ describe("L402 stateless macaroon + preimage verification", () => {
     const vec = createProtocolTestVector("audit:fleet", 100);
     const verified = verifyL402Token(vec.authorizationHeader, "audit:fleet");
     expect(verified.valid).toBe(true);
+  });
+
+  it("verifies valid Newsatoshi SHA-256 PayWord headers and rejects forgeries", () => {
+    const seed = crypto.randomBytes(32);
+    const tok1 = crypto.createHash("sha256").update(seed).digest();
+    const tok2 = crypto.createHash("sha256").update(tok1).digest();
+    const tip = crypto.createHash("sha256").update(tok2).digest();
+
+    const ok = verifyNewsatoshiPayWordHeader(
+      `tip=${tip.toString("hex")},token=${tok1.toString("hex")},ticks=2`
+    );
+    expect(ok.valid).toBe(true);
+    expect(ok.ticks).toBe(2);
+
+    const bad = verifyNewsatoshiPayWordHeader(
+      `tip=${tip.toString("hex")},token=${tok1.toString("hex")},ticks=1`
+    );
+    expect(bad.valid).toBe(false);
   });
 });

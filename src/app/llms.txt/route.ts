@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
 - OpenAPI 3.1 Spec: ${origin}/api/openapi.json
 - Streamable HTTP MCP Endpoint: ${origin}/api/mcp
 - Lightning Zap Address: satsentry@coinos.io
+- Zero-Gas Post-Quantum Payment Rail: NEWSATOSHI-PAYWORD-SHA256/1.0 (\`X-Newsatoshi-PayWord\` header · https://commons.newsatoshi.org/mcp)
 
 ## Live L402 Paid Endpoints (HTTP 402 over Lightning — Verified on 402index.io)
 - POST ${origin}/api/v1/audit/fleet — ${L402_PRICING.fleetAuditSats} sats (batch CVE + EOL + LN posture audit for up to 50 nodes)

@@ -27,6 +27,15 @@ export async function GET(request: NextRequest) {
         unit: "sat",
         status: status.mode,
         enforcingPayments: status.enforcingPayments,
+        alternative_rails: [
+          {
+            protocol: "NEWSATOSHI-PAYWORD-SHA256/1.0",
+            header: "X-Newsatoshi-PayWord",
+            gas_usd: 0,
+            gateway: "https://commons.newsatoshi.org",
+            mcp: "https://commons.newsatoshi.org/mcp",
+          },
+        ],
       },
       endpoints: [
         {
